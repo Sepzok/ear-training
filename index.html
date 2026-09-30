@@ -574,6 +574,24 @@
       return notes.map((n) => NOTE_LABELS[n] || String(n)).join(" → ");
     }
 
+    async function ensureAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioContext.state === "suspended") {
+        try {
+          await Promise.race([
+            audioContext.resume(),
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error("audio-resume-timeout")), 1000),
+            ),
+          ]);
+        } catch (_) {
+          /* Headless / autoplay policies may leave context suspended; decoding can continue. */
+        }
+      }
+    }
+
     let pianoLoadPromise = null;
 
     async function loadPiano() {
@@ -584,7 +602,9 @@
         try {
           els.audioStatus.textContent = "正在准备钢琴音色…";
           els.audioStatus.className = "status-bar";
-          await ensureAudio();
+          if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          }
           for (let i = 0; i < noteNames.length; i++) {
             const response = await fetch(`./assets/piano/${noteNames[i]}.mp3`);
             if (!response.ok) throw new Error(`缺少 ${noteNames[i]}.mp3`);
@@ -609,15 +629,6 @@
         }
       })();
       return pianoLoadPromise;
-    }
-
-    async function ensureAudio() {
-      if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioContext.state === "suspended") {
-        await audioContext.resume();
-      }
     }
 
     function stopPlayback() {
@@ -975,6 +986,7 @@
 
     // Bootstrap
     generateQuestions();
+    // Prefetch samples without blocking on autoplay resume.
     loadPiano();
   </script>
 </body>
