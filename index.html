@@ -195,9 +195,9 @@
 
     .question-item:hover { border-color: #b9c7d8; }
     .question-item.active {
-      background: var(--accent-soft);
-      border-color: #8dceb0;
-      box-shadow: inset 0 0 0 1px rgba(47, 158, 98, 0.18);
+      background: #eef6ff;
+      border-color: #9dbbe0;
+      box-shadow: inset 0 0 0 1px rgba(37, 99, 160, 0.16);
     }
 
     .q-index {
@@ -214,8 +214,8 @@
     }
 
     .question-item.active .q-index {
-      background: var(--accent);
-      border-color: var(--accent);
+      background: #2b6cb0;
+      border-color: #2b6cb0;
       color: #fff;
     }
 
@@ -574,14 +574,50 @@
       return notes.map((n) => NOTE_LABELS[n] || String(n)).join(" → ");
     }
 
-    function ensureAudio() {
+    let pianoLoadPromise = null;
+
+    async function loadPiano() {
+      if (pianoReady) return true;
+      if (pianoLoadPromise) return pianoLoadPromise;
+      pianoLoadPromise = (async () => {
+        const noteNames = ["do", "re", "mi", "fa", "sol", "la", "si", "high-do"];
+        try {
+          els.audioStatus.textContent = "正在准备钢琴音色…";
+          els.audioStatus.className = "status-bar";
+          await ensureAudio();
+          for (let i = 0; i < noteNames.length; i++) {
+            const response = await fetch(`./assets/piano/${noteNames[i]}.mp3`);
+            if (!response.ok) throw new Error(`缺少 ${noteNames[i]}.mp3`);
+            const arrayBuffer = await response.arrayBuffer();
+            audioBuffers[i + 1] = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+          }
+          pianoReady = true;
+          usePiano = true;
+          els.audioStatus.textContent = "钢琴音色已就绪";
+          els.audioStatus.className = "status-bar ok";
+          syncToggles();
+          return true;
+        } catch (err) {
+          pianoReady = false;
+          usePiano = false;
+          pianoLoadPromise = null;
+          els.audioStatus.textContent = "钢琴音色加载失败，已改用蜂鸣";
+          els.audioStatus.className = "status-bar warn";
+          syncToggles();
+          console.warn(err);
+          return false;
+        }
+      })();
+      return pianoLoadPromise;
+    }
+
+    async function ensureAudio() {
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
       }
       if (audioContext.state === "suspended") {
-        return audioContext.resume();
+        await audioContext.resume();
       }
-      return Promise.resolve();
     }
 
     function stopPlayback() {
@@ -603,31 +639,6 @@
         activeSources = activeSources.filter((s) => s !== source);
       };
       return source;
-    }
-
-    async function loadPiano() {
-      const noteNames = ["do", "re", "mi", "fa", "sol", "la", "si", "high-do"];
-      try {
-        await ensureAudio();
-        for (let i = 0; i < noteNames.length; i++) {
-          const response = await fetch(`./assets/piano/${noteNames[i]}.mp3`);
-          if (!response.ok) throw new Error(`missing ${noteNames[i]}`);
-          const arrayBuffer = await response.arrayBuffer();
-          audioBuffers[i + 1] = await audioContext.decodeAudioData(arrayBuffer.slice(0));
-        }
-        pianoReady = true;
-        usePiano = true;
-        els.audioStatus.textContent = "钢琴音色已就绪";
-        els.audioStatus.className = "status-bar ok";
-        syncToggles();
-      } catch (err) {
-        pianoReady = false;
-        usePiano = false;
-        els.audioStatus.textContent = "钢琴音色加载失败，已改用蜂鸣";
-        els.audioStatus.className = "status-bar warn";
-        syncToggles();
-        console.warn(err);
-      }
     }
 
     function playBeep(note, duration = 0.45) {
@@ -662,6 +673,7 @@
     async function playNote(note, { echo = false } = {}) {
       if (echo && !soundEnabled) return;
       await ensureAudio();
+      if (usePiano && !pianoReady) await loadPiano();
       if (usePiano && pianoReady) playPiano(note);
       else playBeep(note);
     }
@@ -669,6 +681,9 @@
     async function playSequence(notes) {
       stopPlayback();
       await ensureAudio();
+      if (usePiano && !pianoReady) {
+        await loadPiano();
+      }
       const stepMs = usePiano && pianoReady ? 700 : 650;
       notes.forEach((note, index) => {
         const timer = setTimeout(() => {
