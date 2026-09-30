@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音感练习</title>
+    <style>
+        /* 基础样式 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+        }
+
+        /* 题目区域 */
+        .question-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .question-item {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 按钮通用样式 */
+        button {
+            padding: 8px 15px;
+            margin: 3px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* 选择区域 */
+        .selection-area {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+
+        /* 底部按钮区域 */
+        .control-area {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        /* 答题状态 */
+        .answer-status {
+            margin-left: 10px;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .correct { background-color: #8BC34A; }
+        .wrong { background-color: #FF5252; }
+        /* 在<style>标签内添加 */
+        #soundToggleBtn.on {
+            background-color: #4CAF50;
+        }
+
+        #soundToggleBtn.off {
+            background-color: #f44336;
+        }
+        #soundTypeToggleBtn.on {
+            background-color: #4CAF50;
+        }
+
+        #soundTypeToggleBtn.off { 
+            background-color: #f44336;
+        }
+        /* 第二行控制区域样式 */
+        .control-area.secondary {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 题目区域 -->
+    <div class="question-grid" id="questionGrid"></div>
+
+    <!-- 音阶选择 -->
+    <div class="selection-area">
+        <button class="note-btn" data-note="1">1</button>
+        <button class="note-btn" data-note="2">2</button>
+        <button class="note-btn" data-note="3">3</button>
+        <button class="note-btn" data-note="4">4</button>
+        <button class="note-btn" data-note="5">5</button>
+        <button class="note-btn" data-note="6">6</button>
+        <button class="note-btn" data-note="7">7</button>
+        <!-- 修改高音1按钮 -->
+        <button class="note-btn" data-note="8">1̇</button>
+    </div>
+
+    <!-- 控制按钮 -->
+    <!-- 在控制区域添加新按钮 -->
+    <div class="control-area">
+        <button id="submitBtn">确定</button>
+        <button id="refreshBtn">刷新</button>
+        <button id="resetCurrentQuestionBtn">重新答题</button>
+    </div>
+    <div class="control-area secondary">
+        <button id="soundToggleBtn">音效：开</button>
+        <button id="soundTypeToggleBtn">音效类型：蜂鸣</button>
+        <button id="decreaseNoteCountBtn">-</button>
+        <button id="increaseNoteCountBtn">+</button>
+    </div>
+
+    <script>
+        // 初始化题目数据
+        let questions = [];
+        const notes = [1,2,3,4,5,6,7,8]; // 8对应高音1
+
+        // 新增：当前音符数量
+        let noteCount = 2;
+
+        // 生成新题目
+        function generateQuestions() {
+            questions = Array(10).fill().map(() => ({
+                answer: Array.from({length: noteCount}, () => randomNote()),
+                userAnswer: []
+            }));
+            renderQuestions();
+        }
+
+        // 新增：减少音符数量
+        function decreaseNoteCount() {
+            if (noteCount > 1) {
+                noteCount--;
+                generateQuestions();
+            }
+        }
+
+        // 新增：增加音符数量
+        function increaseNoteCount() {
+            noteCount++;
+            generateQuestions();
+        }
+
+        // 新增：事件监听
+        document.getElementById('decreaseNoteCountBtn').addEventListener('click', decreaseNoteCount);
+        document.getElementById('increaseNoteCountBtn').addEventListener('click', increaseNoteCount);
+        // 渲染题目
+        // 修改渲染函数
+        function renderQuestions() {
+            const grid = document.getElementById('questionGrid');
+            grid.innerHTML = questions.map((q, i) => `
+                <div class="question-item">
+                    <button onclick="playQuestion(${i})">播放 ${i+1}</button>
+                    <span class="answer-status ${q.status || ''}">
+                        ${q.userAnswer.map(n => n === '8' ? '1̇' : n).join(' → ')}
+                    </span>
+                </div>
+            `).join('');
+        }
+
+        // 播放题目音频
+        // 修改播放函数
+        function playQuestion(index) {
+        // 停止当前播放
+        if(currentOscillator) currentOscillator.stop();
+        
+        // 激活当前题目
+        questions.forEach(q => q.active = false);
+        questions[index].active = true;
+        
+        // 生成音频
+        const answerNotes = questions[index].answer;
+        if (isMP3Sound) {
+            playMP3NotesSequence(answerNotes);
+        } else {
+            playBeepNotesSequence(answerNotes);
+        }
+        }
+        
+        // 顺序播放 MP3 音符
+        function playMP3NotesSequence(notes) {
+            let currentIndex = 0;
+        
+            function playNextNote() {
+                if (currentIndex >= notes.length) return;
+        
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffers[notes[currentIndex]];
+                source.connect(audioContext.destination);
+                source.start();
+        
+                // 如果不是最后一个音符，1 秒后停止播放
+                if (currentIndex < notes.length - 1) {
+                    source.stop(audioContext.currentTime + 1);
+                }
+        
+                currentIndex++;
+        
+                // 计算下一个音符的播放时间，若不是最后一个音符，1 秒后播放下一个，否则自然结束
+                const delay = currentIndex < notes.length ? 1000 : 0;
+                setTimeout(playNextNote, delay);
+            }
+        
+            playNextNote();
+        }
+        
+        // 顺序播放蜂鸣音符
+        function playBeepNotesSequence(notes) {
+            let currentIndex = 0;
+        
+            function playNextNote() {
+                if(currentIndex >= notes.length) return;
+        
+                const oscillator = audioContext.createOscillator();
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(
+                    noteFrequencies[notes[currentIndex]], 
+                    audioContext.currentTime
+                );
+        
+                oscillator.connect(audioContext.destination);
+                oscillator.start();
+                oscillator.stop(audioContext.currentTime + 0.5);
+        
+                currentIndex++;
+        
+                oscillator.onended = () => {
+                    setTimeout(playNextNote, 300);
+                };
+            }
+        
+            playNextNote();
+        }
+
+        // 提交答案验证
+        function checkAnswers() {
+            questions.forEach(q => {
+                const isCorrect = q.answer.join() === q.userAnswer.join();
+                q.status = isCorrect ? 'correct' : 'wrong';
+            });
+            renderQuestions();
+        }
+
+        // 事件监听
+        // 在script顶部添加状态变量
+        let soundEnabled = true;
+        
+        // 初始化时添加事件监听
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        if (soundToggleBtn) {
+            soundToggleBtn.addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                soundToggleBtn.textContent = `音效：${soundEnabled ? '开' : '关'}`;
+                soundToggleBtn.className = soundEnabled ? 'on' : 'off';
+            });
+        }
+        
+        // 修改音符按钮点击事件
+        document.querySelectorAll('.note-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const currentQuestion = questions.find(q => q.active);
+                if (currentQuestion) {
+                    currentQuestion.userAnswer.push(btn.dataset.note);
+                    renderQuestions();
+        
+                    // 播放音效
+                    if (soundEnabled) {
+                        playSingleNote(btn.dataset.note);
+                    }
+                }
+            });
+        });
+        
+        // 添加单音符播放函数
+        // 新增：音效类型开关，true 为 MP3，false 为蜂鸣
+        let isMP3Sound = false;
+        
+        // 新增：音频上下文和音频缓冲区
+        let audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let audioBuffers = {};
+        
+        // 加载 MP3 文件
+        async function loadAudioFiles() {
+            const noteNames = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si', 'high-do'];
+            for (let i = 0; i < noteNames.length; i++) {
+                const response = await fetch(`./assets/piano/${noteNames[i]}.mp3`);
+                const arrayBuffer = await response.arrayBuffer();
+                audioBuffers[i + 1] = await audioContext.decodeAudioData(arrayBuffer);
+            }
+        }
+        
+        // 初始化加载音频文件
+        loadAudioFiles();
+        
+        // 新增：播放 MP3 音效
+        function playMP3Note(note) {
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffers[note];
+            source.connect(audioContext.destination);
+            source.start();
+        }
+        
+        // 新增：音效类型切换函数
+        function toggleSoundType() {
+            isMP3Sound = !isMP3Sound;
+            const btn = document.getElementById('soundTypeToggleBtn');
+            btn.textContent = isMP3Sound ? '音效类型：钢琴' : '音效类型：蜂鸣';
+            if (isMP3Sound) {
+                btn.className = 'on';
+            } else {
+                btn.className = ''; // 移除样式，恢复默认颜色
+            }
+        }
+        
+        // 新增：事件监听
+        document.getElementById('soundTypeToggleBtn').addEventListener('click', toggleSoundType);
+        
+        // 修改：播放音符函数
+        function playSingleNote(note) {
+            if (soundEnabled) {
+                if (isMP3Sound) {
+                    playMP3Note(note);
+                } else {
+                    // 原有蜂鸣音效代码
+                    const oscillator = audioContext.createOscillator();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(
+                        noteFrequencies[note], 
+                        audioContext.currentTime
+                    );
+                    oscillator.connect(audioContext.destination);
+                    oscillator.start();
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                }
+            }
+        }
+        document.getElementById('submitBtn').addEventListener('click', checkAnswers);
+        document.getElementById('refreshBtn').addEventListener('click', generateQuestions);
+        // 为重新答题按钮添加事件监听
+        document.getElementById('resetCurrentQuestionBtn').addEventListener('click', () => {
+            const currentQuestion = questions.find(q => q.active);
+            if (currentQuestion) {
+                // 清空用户答案
+                currentQuestion.userAnswer = [];
+                // 重置答题状态
+                currentQuestion.status = null;
+                // 重新渲染题目
+                renderQuestions();
+            }
+        });
+        
+        // 初始化
+        generateQuestions();
+        // 添加音频上下文
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let currentOscillator = null;
+
+        // 音符频率映射（C大调音阶）
+        const noteFrequencies = {
+            1: 261.63,  // 中音C
+            2: 293.66,  // D
+            3: 329.63,  // E
+            4: 349.23,  // F
+            5: 392.00,  // G
+            6: 440.00,  // A
+            7: 493.88,  // B
+            8: 523.25   // 高音C
+        };
+
+        // 随机音符生成
+        function randomNote() {
+            return Math.floor(Math.random() * 8) + 1; // 1-8
+        }
+    </script>
+</body>
+</html>
+
