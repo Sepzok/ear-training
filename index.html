@@ -1,513 +1,966 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>音感练习</title>
-    <style>
-        :root {
-            color-scheme: light;
-            --ink: #15202b;
-            --muted: #5b6575;
-            --line: #d7dee8;
-            --soft: #f3f6fb;
-            --panel: #ffffff;
-            --accent: #2f9e62;
-            --accent-hover: #248552;
-            --danger: #e53935;
-            --ok-bg: #e8f5e9;
-            --bad-bg: #ffebee;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>音感练习 · Sepzok</title>
+  <meta name="description" content="听音选音阶，练习相对音感。支持钢琴音色与多音符短句。" />
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #15202b;
+      --muted: #5b6575;
+      --line: #d7dee8;
+      --soft: #f3f6fb;
+      --panel: #ffffff;
+      --accent: #2f9e62;
+      --accent-hover: #248552;
+      --accent-soft: #e8f6ee;
+      --danger: #d64545;
+      --danger-soft: #fdecec;
+      --warn: #b7791f;
+      --ok-bg: #e8f5e9;
+      --bad-bg: #ffebee;
+      --shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
+    }
 
-        * { box-sizing: border-box; }
+    * { box-sizing: border-box; }
 
-        body {
-            margin: 0;
-            min-height: 100vh;
-            font-family: "Noto Sans SC", "PingFang SC", "Segoe UI", system-ui, sans-serif;
-            color: var(--ink);
-            background:
-                radial-gradient(900px 420px at 8% -10%, #dceaf8, transparent 55%),
-                linear-gradient(180deg, #f8fafc, #eef2f7);
-        }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Noto Sans SC", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(900px 420px at 8% -10%, #dceaf8, transparent 55%),
+        linear-gradient(180deg, #f8fafc, #eef2f7);
+    }
 
-        .app-shell {
-            width: min(1100px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 28px 0 40px;
-        }
+    button,
+    input {
+      font: inherit;
+    }
 
-        .app-header {
-            margin-bottom: 18px;
-        }
+    button {
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
+    }
 
-        .app-header h1 {
-            margin: 0 0 6px;
-            font-size: 1.55rem;
-            letter-spacing: -0.02em;
-        }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
 
-        .app-header p {
-            margin: 0;
-            color: var(--muted);
-            font-size: 0.95rem;
-        }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 650;
+      padding: 11px 16px;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
 
-        .workbench {
-            display: grid;
-            gap: 16px;
-        }
+    .btn-secondary {
+      background: #eef2f6;
+      color: var(--ink);
+      font-weight: 600;
+      padding: 11px 14px;
+    }
+    .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
 
-        .panel {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 14px;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-        }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      font-weight: 600;
+      padding: 8px 10px;
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--soft); color: var(--ink); }
 
-        .panel-title {
-            margin: 0 0 12px;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: var(--muted);
-        }
+    .btn-danger {
+      background: var(--danger-soft);
+      color: var(--danger);
+      font-weight: 650;
+      padding: 11px 14px;
+    }
 
-        .question-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-        }
+    .app-shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 48px;
+    }
 
-        .question-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-height: 44px;
-            padding: 6px 8px;
-            background: var(--soft);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-        }
+    .app-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 14px 20px;
+      margin-bottom: 18px;
+    }
 
-        .question-item button {
-            flex: 0 0 auto;
-            min-width: 88px;
-        }
+    .app-header h1 {
+      margin: 0 0 6px;
+      font-size: 1.6rem;
+      letter-spacing: -0.02em;
+    }
 
-        .answer-status {
-            flex: 1;
-            min-width: 0;
-            margin-left: 0;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.92rem;
-            color: var(--ink);
-        }
+    .app-header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
 
-        .correct { background-color: var(--ok-bg); }
-        .wrong { background-color: var(--bad-bg); }
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
 
-        button {
-            padding: 10px 14px;
-            margin: 0;
-            border: none;
-            border-radius: 8px;
-            background-color: var(--accent);
-            color: #fff;
-            font: inherit;
-            font-weight: 600;
-            cursor: pointer;
-        }
+    .stat-pill {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      font-size: 0.88rem;
+    }
 
-        button:hover { background-color: var(--accent-hover); }
+    .stat-pill strong {
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
 
-        .selection-area {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            width: min(320px, 100%);
-            margin: 0 auto 14px;
-        }
+    .stat-pill .label { color: var(--muted); }
 
-        .note-btn {
-            aspect-ratio: 1.35 / 1;
-            font-size: 1.15rem;
-        }
+    .workbench {
+      display: grid;
+      gap: 16px;
+    }
 
-        .control-area {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-        }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
 
-        .control-area.secondary {
-            margin-top: 10px;
-        }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
 
-        .side-panel .control-area {
-            justify-content: stretch;
-        }
+    .panel-title {
+      margin: 0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
 
-        .side-panel .control-area button {
-            flex: 1 1 auto;
-        }
+    .hint {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
 
-        #soundToggleBtn.off,
-        #soundTypeToggleBtn.off {
-            background-color: var(--danger);
-        }
+    .question-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
 
-        #soundToggleBtn.on,
-        #soundTypeToggleBtn.on {
-            background-color: var(--accent);
-        }
+    .question-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      min-height: 52px;
+      padding: 8px 10px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      cursor: pointer;
+      text-align: left;
+    }
 
-        .note-count {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
+    .question-item:hover { border-color: #b9c7d8; }
+    .question-item.active {
+      background: var(--accent-soft);
+      border-color: #8dceb0;
+      box-shadow: inset 0 0 0 1px rgba(47, 158, 98, 0.18);
+    }
 
-        @media (min-width: 900px) {
-            .workbench {
-                grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
-                align-items: start;
-            }
+    .q-index {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
 
-            .question-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 8px;
-            }
+    .question-item.active .q-index {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
 
-            .side-panel {
-                position: sticky;
-                top: 16px;
-            }
+    .q-body { min-width: 0; }
 
-            .selection-area {
-                margin-left: 0;
-                margin-right: 0;
-                width: min(320px, 100%);
-            }
+    .q-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      align-items: center;
+      font-size: 0.92rem;
+    }
 
-            .side-panel .control-area {
-                justify-content: flex-start;
-            }
-        }
+    .q-draft { color: var(--ink); font-weight: 600; letter-spacing: 0.02em; }
+    .q-empty { color: var(--muted); font-weight: 500; }
+    .q-answer {
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
 
-        @media (max-width: 899px) {
-            .selection-area {
-                width: min(420px, 100%);
-            }
-        }
-    </style>
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge.correct { background: var(--ok-bg); color: #1b7a3d; }
+    .badge.wrong { background: var(--bad-bg); color: #b42318; }
+    .badge.pending { background: #eef2f6; color: var(--muted); }
+
+    .play-btn {
+      background: #fff;
+      color: var(--accent);
+      border: 1px solid #b7dfc8;
+      font-weight: 700;
+      padding: 8px 12px;
+      border-radius: 9px;
+    }
+    .play-btn:hover { background: var(--accent-soft); }
+
+    .current-card {
+      padding: 12px;
+      border-radius: 12px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .current-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .current-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .draft-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 34px;
+      align-items: center;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 34px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-weight: 700;
+    }
+
+    .draft-placeholder { color: var(--muted); font-size: 0.9rem; }
+
+    .selection-area {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: min(320px, 100%);
+      margin: 0 0 14px;
+    }
+
+    .note-btn {
+      aspect-ratio: 1.25 / 1;
+      font-size: 1.2rem;
+      font-weight: 750;
+      background: var(--accent);
+      color: #fff;
+    }
+    .note-btn:hover:not(:disabled) { background: var(--accent-hover); }
+
+    .action-row,
+    .settings-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .settings {
+      margin-top: 6px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    .settings-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .setting-row span {
+      color: var(--muted);
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px;
+    }
+
+    .stepper button {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .stepper strong {
+      min-width: 1.5rem;
+      text-align: center;
+      font-size: 1rem;
+    }
+
+    .toggle {
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 650;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+    }
+    .toggle.on {
+      background: var(--accent-soft);
+      border-color: #8dceb0;
+      color: #1f7a49;
+    }
+    .toggle.off {
+      background: var(--danger-soft);
+      border-color: #f0b4b4;
+      color: var(--danger);
+    }
+
+    .status-bar {
+      margin-top: 10px;
+      font-size: 0.82rem;
+      color: var(--muted);
+      min-height: 1.2em;
+    }
+    .status-bar.warn { color: var(--warn); }
+    .status-bar.ok { color: #1f7a49; }
+
+    .kbd-hint {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    @media (min-width: 900px) {
+      .workbench {
+        grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.9fr);
+        align-items: start;
+      }
+
+      .question-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .side-panel {
+        position: sticky;
+        top: 16px;
+      }
+    }
+
+    @media (max-width: 899px) {
+      .selection-area { width: min(420px, 100%); }
+      .question-item { grid-template-columns: auto 1fr; }
+      .play-btn { grid-column: 1 / -1; justify-self: start; }
+    }
+  </style>
 </head>
 <body>
-    <div class="app-shell">
-        <header class="app-header">
-            <h1>音感练习</h1>
-            <p>听音选音阶 · 练相对音感</p>
-        </header>
-        <div class="workbench">
-            <section class="panel">
-                <h2 class="panel-title">题目</h2>
-                <div class="question-grid" id="questionGrid"></div>
-            </section>
-            <aside class="panel side-panel">
-                <h2 class="panel-title">作答</h2>
-                <div class="selection-area">
-                    <button class="note-btn" data-note="1">1</button>
-                    <button class="note-btn" data-note="2">2</button>
-                    <button class="note-btn" data-note="3">3</button>
-                    <button class="note-btn" data-note="4">4</button>
-                    <button class="note-btn" data-note="5">5</button>
-                    <button class="note-btn" data-note="6">6</button>
-                    <button class="note-btn" data-note="7">7</button>
-                    <button class="note-btn" data-note="8">1̇</button>
-                </div>
-                <div class="control-area">
-                    <button id="submitBtn">确定</button>
-                    <button id="refreshBtn">刷新</button>
-                    <button id="resetCurrentQuestionBtn">重新答题</button>
-                </div>
-                <div class="control-area secondary">
-                    <button id="soundToggleBtn">音效：开</button>
-                    <button id="soundTypeToggleBtn">音效类型：蜂鸣</button>
-                    <span class="note-count">
-                        <button id="decreaseNoteCountBtn" type="button" aria-label="减少音符数">-</button>
-                        <button id="increaseNoteCountBtn" type="button" aria-label="增加音符数">+</button>
-                    </span>
-                </div>
-            </aside>
+  <div class="app-shell">
+    <header class="app-header">
+      <div>
+        <h1>音感练习</h1>
+        <p>听短句、选音阶，练相对音感</p>
+      </div>
+      <div class="stats" aria-live="polite">
+        <div class="stat-pill"><span class="label">进度</span><strong id="statProgress">0/10</strong></div>
+        <div class="stat-pill"><span class="label">正确</span><strong id="statCorrect">0</strong></div>
+        <div class="stat-pill"><span class="label">正确率</span><strong id="statRate">—</strong></div>
+      </div>
+    </header>
+
+    <div class="workbench">
+      <section class="panel">
+        <div class="panel-head">
+          <h2 class="panel-title">题目</h2>
+          <span class="hint">点题目或播放，再在右侧作答</span>
         </div>
+        <div class="question-grid" id="questionGrid"></div>
+      </section>
+
+      <aside class="panel side-panel">
+        <div class="panel-head">
+          <h2 class="panel-title">作答</h2>
+          <button type="button" class="btn-ghost" id="newRoundBtn">新一轮</button>
+        </div>
+
+        <div class="current-card">
+          <div class="current-label">当前题目</div>
+          <div class="current-title" id="currentTitle">第 1 题</div>
+          <div class="draft-row" id="draftRow">
+            <span class="draft-placeholder">先播放，再点音阶录入</span>
+          </div>
+        </div>
+
+        <div class="selection-area" id="notePad">
+          <button type="button" class="note-btn" data-note="1">1</button>
+          <button type="button" class="note-btn" data-note="2">2</button>
+          <button type="button" class="note-btn" data-note="3">3</button>
+          <button type="button" class="note-btn" data-note="4">4</button>
+          <button type="button" class="note-btn" data-note="5">5</button>
+          <button type="button" class="note-btn" data-note="6">6</button>
+          <button type="button" class="note-btn" data-note="7">7</button>
+          <button type="button" class="note-btn" data-note="8">1̇</button>
+        </div>
+
+        <div class="action-row">
+          <button type="button" class="btn-primary" id="playBtn">播放</button>
+          <button type="button" class="btn-primary" id="checkBtn">批改本题</button>
+          <button type="button" class="btn-secondary" id="undoBtn">回退</button>
+          <button type="button" class="btn-secondary" id="clearBtn">清空</button>
+        </div>
+        <div class="action-row">
+          <button type="button" class="btn-secondary" id="checkAllBtn">批改全部</button>
+          <button type="button" class="btn-danger" id="revealBtn">看答案</button>
+        </div>
+
+        <div class="settings">
+          <div class="panel-head">
+            <h2 class="panel-title">设置</h2>
+          </div>
+          <div class="settings-grid">
+            <div class="setting-row">
+              <span>每题音符数</span>
+              <div class="stepper">
+                <button type="button" id="decreaseNoteCountBtn" aria-label="减少音符数">−</button>
+                <strong id="noteCountLabel">2</strong>
+                <button type="button" id="increaseNoteCountBtn" aria-label="增加音符数">+</button>
+              </div>
+            </div>
+            <div class="setting-row">
+              <span>按键回声</span>
+              <button type="button" class="toggle on" id="soundToggleBtn">开</button>
+            </div>
+            <div class="setting-row">
+              <span>音色</span>
+              <button type="button" class="toggle on" id="soundTypeToggleBtn">钢琴</button>
+            </div>
+          </div>
+          <div class="status-bar" id="audioStatus">正在准备钢琴音色…</div>
+          <div class="kbd-hint">快捷键：1–7 / 8=高音1 · Backspace 回退 · Enter 批改 · Space 播放</div>
+        </div>
+      </aside>
     </div>
+  </div>
 
-    <script>
-        // 初始化题目数据
-        let questions = [];
-        const notes = [1,2,3,4,5,6,7,8]; // 8对应高音1
+  <script>
+    const TOTAL = 10;
+    const MIN_NOTES = 1;
+    const MAX_NOTES = 5;
+    const NOTE_LABELS = { 1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7", 8: "1̇" };
+    const NOTE_FREQUENCIES = {
+      1: 261.63,
+      2: 293.66,
+      3: 329.63,
+      4: 349.23,
+      5: 392.0,
+      6: 440.0,
+      7: 493.88,
+      8: 523.25,
+    };
 
-        // 新增：当前音符数量
-        let noteCount = 2;
+    /** @type {{ answer: number[], userAnswer: number[], status: null | 'correct' | 'wrong', revealed: boolean }[]} */
+    let questions = [];
+    let activeIndex = 0;
+    let noteCount = 2;
+    let soundEnabled = true;
+    let usePiano = true;
+    let pianoReady = false;
 
-        // 生成新题目
-        function generateQuestions() {
-            questions = Array(10).fill().map(() => ({
-                answer: Array.from({length: noteCount}, () => randomNote()),
-                userAnswer: []
-            }));
-            renderQuestions();
-        }
+    let audioContext = null;
+    /** @type {Record<number, AudioBuffer>} */
+    let audioBuffers = {};
+    /** @type {Array<OscillatorNode | AudioBufferSourceNode>} */
+    let activeSources = [];
+    /** @type {number[]} */
+    let playTimers = [];
 
-        // 新增：减少音符数量
-        function decreaseNoteCount() {
-            if (noteCount > 1) {
-                noteCount--;
-                generateQuestions();
-            }
-        }
+    const els = {
+      grid: document.getElementById("questionGrid"),
+      draftRow: document.getElementById("draftRow"),
+      currentTitle: document.getElementById("currentTitle"),
+      statProgress: document.getElementById("statProgress"),
+      statCorrect: document.getElementById("statCorrect"),
+      statRate: document.getElementById("statRate"),
+      noteCountLabel: document.getElementById("noteCountLabel"),
+      audioStatus: document.getElementById("audioStatus"),
+      soundToggleBtn: document.getElementById("soundToggleBtn"),
+      soundTypeToggleBtn: document.getElementById("soundTypeToggleBtn"),
+    };
 
-        // 新增：增加音符数量
-        function increaseNoteCount() {
-            noteCount++;
-            generateQuestions();
-        }
+    function formatNotes(notes) {
+      return notes.map((n) => NOTE_LABELS[n] || String(n)).join(" → ");
+    }
 
-        // 新增：事件监听
-        document.getElementById('decreaseNoteCountBtn').addEventListener('click', decreaseNoteCount);
-        document.getElementById('increaseNoteCountBtn').addEventListener('click', increaseNoteCount);
-        // 渲染题目
-        // 修改渲染函数
-        function renderQuestions() {
-            const grid = document.getElementById('questionGrid');
-            grid.innerHTML = questions.map((q, i) => `
-                <div class="question-item">
-                    <button onclick="playQuestion(${i})">播放 ${i+1}</button>
-                    <span class="answer-status ${q.status || ''}">
-                        ${q.userAnswer.map(n => n === '8' ? '1̇' : n).join(' → ')}
-                    </span>
-                </div>
-            `).join('');
-        }
-
-        // 播放题目音频
-        // 修改播放函数
-        function playQuestion(index) {
-        // 停止当前播放
-        if(currentOscillator) currentOscillator.stop();
-        
-        // 激活当前题目
-        questions.forEach(q => q.active = false);
-        questions[index].active = true;
-        
-        // 生成音频
-        const answerNotes = questions[index].answer;
-        if (isMP3Sound) {
-            playMP3NotesSequence(answerNotes);
-        } else {
-            playBeepNotesSequence(answerNotes);
-        }
-        }
-        
-        // 顺序播放 MP3 音符
-        function playMP3NotesSequence(notes) {
-            let currentIndex = 0;
-        
-            function playNextNote() {
-                if (currentIndex >= notes.length) return;
-        
-                const source = audioContext.createBufferSource();
-                source.buffer = audioBuffers[notes[currentIndex]];
-                source.connect(audioContext.destination);
-                source.start();
-        
-                // 如果不是最后一个音符，1 秒后停止播放
-                if (currentIndex < notes.length - 1) {
-                    source.stop(audioContext.currentTime + 1);
-                }
-        
-                currentIndex++;
-        
-                // 计算下一个音符的播放时间，若不是最后一个音符，1 秒后播放下一个，否则自然结束
-                const delay = currentIndex < notes.length ? 1000 : 0;
-                setTimeout(playNextNote, delay);
-            }
-        
-            playNextNote();
-        }
-        
-        // 顺序播放蜂鸣音符
-        function playBeepNotesSequence(notes) {
-            let currentIndex = 0;
-        
-            function playNextNote() {
-                if(currentIndex >= notes.length) return;
-        
-                const oscillator = audioContext.createOscillator();
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(
-                    noteFrequencies[notes[currentIndex]], 
-                    audioContext.currentTime
-                );
-        
-                oscillator.connect(audioContext.destination);
-                oscillator.start();
-                oscillator.stop(audioContext.currentTime + 0.5);
-        
-                currentIndex++;
-        
-                oscillator.onended = () => {
-                    setTimeout(playNextNote, 300);
-                };
-            }
-        
-            playNextNote();
-        }
-
-        // 提交答案验证
-        function checkAnswers() {
-            questions.forEach(q => {
-                const isCorrect = q.answer.join() === q.userAnswer.join();
-                q.status = isCorrect ? 'correct' : 'wrong';
-            });
-            renderQuestions();
-        }
-
-        // 事件监听
-        // 在script顶部添加状态变量
-        let soundEnabled = true;
-        
-        // 初始化时添加事件监听
-        const soundToggleBtn = document.getElementById('soundToggleBtn');
-        if (soundToggleBtn) {
-            soundToggleBtn.addEventListener('click', () => {
-                soundEnabled = !soundEnabled;
-                soundToggleBtn.textContent = `音效：${soundEnabled ? '开' : '关'}`;
-                soundToggleBtn.className = soundEnabled ? 'on' : 'off';
-            });
-        }
-        
-        // 修改音符按钮点击事件
-        document.querySelectorAll('.note-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const currentQuestion = questions.find(q => q.active);
-                if (currentQuestion) {
-                    currentQuestion.userAnswer.push(btn.dataset.note);
-                    renderQuestions();
-        
-                    // 播放音效
-                    if (soundEnabled) {
-                        playSingleNote(btn.dataset.note);
-                    }
-                }
-            });
-        });
-        
-        // 添加单音符播放函数
-        // 新增：音效类型开关，true 为 MP3，false 为蜂鸣
-        let isMP3Sound = false;
-        
-        // 新增：音频上下文和音频缓冲区
-        let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let audioBuffers = {};
-        
-        // 加载 MP3 文件
-        async function loadAudioFiles() {
-            const noteNames = ['do', 're', 'mi', 'fa', 'sol', 'la', 'si', 'high-do'];
-            for (let i = 0; i < noteNames.length; i++) {
-                const response = await fetch(`./assets/piano/${noteNames[i]}.mp3`);
-                const arrayBuffer = await response.arrayBuffer();
-                audioBuffers[i + 1] = await audioContext.decodeAudioData(arrayBuffer);
-            }
-        }
-        
-        // 初始化加载音频文件
-        loadAudioFiles();
-        
-        // 新增：播放 MP3 音效
-        function playMP3Note(note) {
-            const source = audioContext.createBufferSource();
-            source.buffer = audioBuffers[note];
-            source.connect(audioContext.destination);
-            source.start();
-        }
-        
-        // 新增：音效类型切换函数
-        function toggleSoundType() {
-            isMP3Sound = !isMP3Sound;
-            const btn = document.getElementById('soundTypeToggleBtn');
-            btn.textContent = isMP3Sound ? '音效类型：钢琴' : '音效类型：蜂鸣';
-            if (isMP3Sound) {
-                btn.className = 'on';
-            } else {
-                btn.className = ''; // 移除样式，恢复默认颜色
-            }
-        }
-        
-        // 新增：事件监听
-        document.getElementById('soundTypeToggleBtn').addEventListener('click', toggleSoundType);
-        
-        // 修改：播放音符函数
-        function playSingleNote(note) {
-            if (soundEnabled) {
-                if (isMP3Sound) {
-                    playMP3Note(note);
-                } else {
-                    // 原有蜂鸣音效代码
-                    const oscillator = audioContext.createOscillator();
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(
-                        noteFrequencies[note], 
-                        audioContext.currentTime
-                    );
-                    oscillator.connect(audioContext.destination);
-                    oscillator.start();
-                    oscillator.stop(audioContext.currentTime + 0.5);
-                }
-            }
-        }
-        document.getElementById('submitBtn').addEventListener('click', checkAnswers);
-        document.getElementById('refreshBtn').addEventListener('click', generateQuestions);
-        // 为重新答题按钮添加事件监听
-        document.getElementById('resetCurrentQuestionBtn').addEventListener('click', () => {
-            const currentQuestion = questions.find(q => q.active);
-            if (currentQuestion) {
-                // 清空用户答案
-                currentQuestion.userAnswer = [];
-                // 重置答题状态
-                currentQuestion.status = null;
-                // 重新渲染题目
-                renderQuestions();
-            }
-        });
-        
-        // 初始化
-        generateQuestions();
-        // 添加音频上下文
+    function ensureAudio() {
+      if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let currentOscillator = null;
+      }
+      if (audioContext.state === "suspended") {
+        return audioContext.resume();
+      }
+      return Promise.resolve();
+    }
 
-        // 音符频率映射（C大调音阶）
-        const noteFrequencies = {
-            1: 261.63,  // 中音C
-            2: 293.66,  // D
-            3: 329.63,  // E
-            4: 349.23,  // F
-            5: 392.00,  // G
-            6: 440.00,  // A
-            7: 493.88,  // B
-            8: 523.25   // 高音C
-        };
-
-        // 随机音符生成
-        function randomNote() {
-            return Math.floor(Math.random() * 8) + 1; // 1-8
+    function stopPlayback() {
+      playTimers.forEach((id) => clearTimeout(id));
+      playTimers = [];
+      activeSources.forEach((source) => {
+        try {
+          source.stop();
+        } catch (_) {
+          /* already stopped */
         }
-    </script>
+      });
+      activeSources = [];
+    }
+
+    function trackSource(source) {
+      activeSources.push(source);
+      source.onended = () => {
+        activeSources = activeSources.filter((s) => s !== source);
+      };
+      return source;
+    }
+
+    async function loadPiano() {
+      const noteNames = ["do", "re", "mi", "fa", "sol", "la", "si", "high-do"];
+      try {
+        await ensureAudio();
+        for (let i = 0; i < noteNames.length; i++) {
+          const response = await fetch(`./assets/piano/${noteNames[i]}.mp3`);
+          if (!response.ok) throw new Error(`missing ${noteNames[i]}`);
+          const arrayBuffer = await response.arrayBuffer();
+          audioBuffers[i + 1] = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        }
+        pianoReady = true;
+        usePiano = true;
+        els.audioStatus.textContent = "钢琴音色已就绪";
+        els.audioStatus.className = "status-bar ok";
+        syncToggles();
+      } catch (err) {
+        pianoReady = false;
+        usePiano = false;
+        els.audioStatus.textContent = "钢琴音色加载失败，已改用蜂鸣";
+        els.audioStatus.className = "status-bar warn";
+        syncToggles();
+        console.warn(err);
+      }
+    }
+
+    function playBeep(note, duration = 0.45) {
+      const osc = trackSource(audioContext.createOscillator());
+      const gain = audioContext.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(NOTE_FREQUENCIES[note], audioContext.currentTime);
+      gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.22, audioContext.currentTime + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.start();
+      osc.stop(audioContext.currentTime + duration + 0.02);
+    }
+
+    function playPiano(note) {
+      const buffer = audioBuffers[note];
+      if (!buffer) {
+        playBeep(note);
+        return;
+      }
+      const source = trackSource(audioContext.createBufferSource());
+      const gain = audioContext.createGain();
+      gain.gain.value = 0.9;
+      source.buffer = buffer;
+      source.connect(gain);
+      gain.connect(audioContext.destination);
+      source.start();
+    }
+
+    async function playNote(note, { echo = false } = {}) {
+      if (echo && !soundEnabled) return;
+      await ensureAudio();
+      if (usePiano && pianoReady) playPiano(note);
+      else playBeep(note);
+    }
+
+    async function playSequence(notes) {
+      stopPlayback();
+      await ensureAudio();
+      const stepMs = usePiano && pianoReady ? 700 : 650;
+      notes.forEach((note, index) => {
+        const timer = setTimeout(() => {
+          if (usePiano && pianoReady) playPiano(note);
+          else playBeep(note);
+        }, index * stepMs);
+        playTimers.push(timer);
+      });
+    }
+
+    function randomNote() {
+      return Math.floor(Math.random() * 8) + 1;
+    }
+
+    function generateQuestions({ keepActive = false } = {}) {
+      stopPlayback();
+      questions = Array.from({ length: TOTAL }, () => ({
+        answer: Array.from({ length: noteCount }, () => randomNote()),
+        userAnswer: [],
+        status: null,
+        revealed: false,
+      }));
+      activeIndex = keepActive ? Math.min(activeIndex, TOTAL - 1) : 0;
+      renderAll();
+    }
+
+    function currentQuestion() {
+      return questions[activeIndex];
+    }
+
+    function setActive(index, { play = false } = {}) {
+      activeIndex = index;
+      renderAll();
+      if (play) playCurrent();
+    }
+
+    async function playCurrent() {
+      const q = currentQuestion();
+      if (!q) return;
+      await playSequence(q.answer);
+    }
+
+    function appendNote(raw) {
+      const note = Number(raw);
+      const q = currentQuestion();
+      if (!q || Number.isNaN(note)) return;
+      if (q.userAnswer.length >= noteCount) return;
+      q.status = null;
+      q.revealed = false;
+      q.userAnswer.push(note);
+      renderAll();
+      playNote(note, { echo: true });
+    }
+
+    function undoNote() {
+      const q = currentQuestion();
+      if (!q || !q.userAnswer.length) return;
+      q.userAnswer.pop();
+      q.status = null;
+      q.revealed = false;
+      renderAll();
+    }
+
+    function clearDraft() {
+      const q = currentQuestion();
+      if (!q) return;
+      q.userAnswer = [];
+      q.status = null;
+      q.revealed = false;
+      renderAll();
+    }
+
+    function sameAnswer(a, b) {
+      if (a.length !== b.length) return false;
+      return a.every((n, i) => Number(n) === Number(b[i]));
+    }
+
+    function gradeQuestion(q) {
+      if (q.userAnswer.length !== q.answer.length) {
+        q.status = "wrong";
+        q.revealed = true;
+        return;
+      }
+      const ok = sameAnswer(q.answer, q.userAnswer);
+      q.status = ok ? "correct" : "wrong";
+      q.revealed = !ok;
+    }
+
+    function checkCurrent() {
+      const q = currentQuestion();
+      if (!q) return;
+      if (!q.userAnswer.length) {
+        els.audioStatus.textContent = "先录入答案，再批改";
+        els.audioStatus.className = "status-bar warn";
+        return;
+      }
+      gradeQuestion(q);
+      renderAll();
+      if (q.status === "correct" && activeIndex < TOTAL - 1) {
+        const timer = setTimeout(() => setActive(activeIndex + 1), 450);
+        playTimers.push(timer);
+      }
+    }
+
+    function checkAll() {
+      questions.forEach((q) => {
+        if (!q.userAnswer.length) {
+          q.status = "wrong";
+          q.revealed = true;
+          return;
+        }
+        gradeQuestion(q);
+      });
+      renderAll();
+    }
+
+    function revealCurrent() {
+      const q = currentQuestion();
+      if (!q) return;
+      q.revealed = true;
+      renderAll();
+      playSequence(q.answer);
+    }
+
+    function syncToggles() {
+      els.soundToggleBtn.textContent = soundEnabled ? "开" : "关";
+      els.soundToggleBtn.className = `toggle ${soundEnabled ? "on" : "off"}`;
+      els.soundTypeToggleBtn.textContent = usePiano ? "钢琴" : "蜂鸣";
+      els.soundTypeToggleBtn.className = `toggle ${usePiano ? "on" : "off"}`;
+      els.soundTypeToggleBtn.disabled = !pianoReady;
+      els.soundTypeToggleBtn.title = pianoReady ? "" : "钢琴音色未就绪";
+      els.noteCountLabel.textContent = String(noteCount);
+    }
+
+    function stats() {
+      const graded = questions.filter((q) => q.status);
+      const correct = questions.filter((q) => q.status === "correct").length;
+      els.statProgress.textContent = `${graded.length}/${TOTAL}`;
+      els.statCorrect.textContent = String(correct);
+      els.statRate.textContent = graded.length
+        ? `${Math.round((correct / graded.length) * 100)}%`
+        : "—";
+    }
+
+    function renderDraft() {
+      const q = currentQuestion();
+      els.currentTitle.textContent = `第 ${activeIndex + 1} 题 · ${noteCount} 个音`;
+      if (!q || !q.userAnswer.length) {
+        els.draftRow.innerHTML = `<span class="draft-placeholder">已录 0/${noteCount} · 点下方音阶</span>`;
+        return;
+      }
+      els.draftRow.innerHTML = q.userAnswer
+        .map((n) => `<span class="chip">${NOTE_LABELS[n]}</span>`)
+        .join("");
+      if (q.userAnswer.length < noteCount) {
+        els.draftRow.innerHTML += `<span class="draft-placeholder">${q.userAnswer.length}/${noteCount}</span>`;
+      }
+    }
+
+    function renderQuestions() {
+      els.grid.innerHTML = questions
+        .map((q, i) => {
+          const badge =
+            q.status === "correct"
+              ? `<span class="badge correct">正确</span>`
+              : q.status === "wrong"
+                ? `<span class="badge wrong">不对</span>`
+                : q.userAnswer.length
+                  ? `<span class="badge pending">作答中</span>`
+                  : `<span class="badge pending">未答</span>`;
+          const draft = q.userAnswer.length
+            ? `<span class="q-draft">${formatNotes(q.userAnswer)}</span>`
+            : `<span class="q-empty">尚未作答</span>`;
+          const answer =
+            q.revealed || q.status === "correct"
+              ? `<div class="q-answer">答案 ${formatNotes(q.answer)}</div>`
+              : "";
+          return `
+            <div class="question-item ${i === activeIndex ? "active" : ""}" data-index="${i}" role="button" tabindex="0">
+              <div class="q-index">${i + 1}</div>
+              <div class="q-body">
+                <div class="q-meta">${draft}${badge}</div>
+                ${answer}
+              </div>
+              <button type="button" class="play-btn" data-play="${i}">播放</button>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function renderAll() {
+      syncToggles();
+      renderDraft();
+      renderQuestions();
+      stats();
+    }
+
+    // Events
+    els.grid.addEventListener("click", (event) => {
+      const play = event.target.closest("[data-play]");
+      if (play) {
+        event.stopPropagation();
+        const index = Number(play.dataset.play);
+        setActive(index, { play: true });
+        return;
+      }
+      const item = event.target.closest(".question-item");
+      if (item) setActive(Number(item.dataset.index));
+    });
+
+    els.grid.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const item = event.target.closest(".question-item");
+      if (!item) return;
+      event.preventDefault();
+      setActive(Number(item.dataset.index), { play: event.key === " " });
+    });
+
+    document.getElementById("notePad").addEventListener("click", (event) => {
+      const btn = event.target.closest(".note-btn");
+      if (!btn) return;
+      appendNote(btn.dataset.note);
+    });
+
+    document.getElementById("playBtn").addEventListener("click", () => playCurrent());
+    document.getElementById("checkBtn").addEventListener("click", checkCurrent);
+    document.getElementById("checkAllBtn").addEventListener("click", checkAll);
+    document.getElementById("undoBtn").addEventListener("click", undoNote);
+    document.getElementById("clearBtn").addEventListener("click", clearDraft);
+    document.getElementById("revealBtn").addEventListener("click", revealCurrent);
+    document.getElementById("newRoundBtn").addEventListener("click", () => generateQuestions());
+
+    document.getElementById("decreaseNoteCountBtn").addEventListener("click", () => {
+      if (noteCount <= MIN_NOTES) return;
+      noteCount -= 1;
+      generateQuestions();
+    });
+    document.getElementById("increaseNoteCountBtn").addEventListener("click", () => {
+      if (noteCount >= MAX_NOTES) return;
+      noteCount += 1;
+      generateQuestions();
+    });
+
+    els.soundToggleBtn.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      syncToggles();
+    });
+
+    els.soundTypeToggleBtn.addEventListener("click", async () => {
+      await ensureAudio();
+      if (!pianoReady) {
+        els.audioStatus.textContent = "钢琴音色不可用，继续使用蜂鸣";
+        els.audioStatus.className = "status-bar warn";
+        usePiano = false;
+        syncToggles();
+        return;
+      }
+      usePiano = !usePiano;
+      syncToggles();
+    });
+
+    window.addEventListener("keydown", (event) => {
+      const tag = (event.target && event.target.tagName) || "";
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (event.key >= "1" && event.key <= "7") {
+        appendNote(Number(event.key));
+        return;
+      }
+      if (event.key === "8") {
+        appendNote(8);
+        return;
+      }
+      if (event.key === "Backspace") {
+        event.preventDefault();
+        undoNote();
+        return;
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        checkCurrent();
+        return;
+      }
+      if (event.key === " " || event.code === "Space") {
+        event.preventDefault();
+        playCurrent();
+      }
+    });
+
+    // Bootstrap
+    generateQuestions();
+    loadPiano();
+  </script>
 </body>
 </html>
-
