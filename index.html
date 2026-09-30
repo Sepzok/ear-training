@@ -5,114 +5,245 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>音感练习</title>
     <style>
-        /* 基础样式 */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
-            background-color: #f5f5f5;
+        :root {
+            color-scheme: light;
+            --ink: #15202b;
+            --muted: #5b6575;
+            --line: #d7dee8;
+            --soft: #f3f6fb;
+            --panel: #ffffff;
+            --accent: #2f9e62;
+            --accent-hover: #248552;
+            --danger: #e53935;
+            --ok-bg: #e8f5e9;
+            --bad-bg: #ffebee;
         }
 
-        /* 题目区域 */
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: "Noto Sans SC", "PingFang SC", "Segoe UI", system-ui, sans-serif;
+            color: var(--ink);
+            background:
+                radial-gradient(900px 420px at 8% -10%, #dceaf8, transparent 55%),
+                linear-gradient(180deg, #f8fafc, #eef2f7);
+        }
+
+        .app-shell {
+            width: min(1100px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 28px 0 40px;
+        }
+
+        .app-header {
+            margin-bottom: 18px;
+        }
+
+        .app-header h1 {
+            margin: 0 0 6px;
+            font-size: 1.55rem;
+            letter-spacing: -0.02em;
+        }
+
+        .app-header p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .workbench {
+            display: grid;
+            gap: 16px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+        }
+
+        .panel-title {
+            margin: 0 0 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
         .question-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 15px;
+            grid-template-columns: 1fr;
+            gap: 8px;
         }
 
         .question-item {
-            background: white;
-            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-height: 44px;
+            padding: 6px 8px;
+            background: var(--soft);
+            border: 1px solid var(--line);
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* 按钮通用样式 */
+        .question-item button {
+            flex: 0 0 auto;
+            min-width: 88px;
+        }
+
+        .answer-status {
+            flex: 1;
+            min-width: 0;
+            margin-left: 0;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.92rem;
+            color: var(--ink);
+        }
+
+        .correct { background-color: var(--ok-bg); }
+        .wrong { background-color: var(--bad-bg); }
+
         button {
-            padding: 8px 15px;
-            margin: 3px;
+            padding: 10px 14px;
+            margin: 0;
             border: none;
-            border-radius: 5px;
-            background-color: #4CAF50;
-            color: white;
+            border-radius: 8px;
+            background-color: var(--accent);
+            color: #fff;
+            font: inherit;
+            font-weight: 600;
             cursor: pointer;
         }
 
-        /* 选择区域 */
+        button:hover { background-color: var(--accent-hover); }
+
         .selection-area {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 5px;
-            margin-bottom: 15px;
+            gap: 8px;
+            width: min(320px, 100%);
+            margin: 0 auto 14px;
         }
 
-        /* 底部按钮区域 */
+        .note-btn {
+            aspect-ratio: 1.35 / 1;
+            font-size: 1.15rem;
+        }
+
         .control-area {
             display: flex;
+            flex-wrap: wrap;
             justify-content: center;
-            gap: 15px;
+            gap: 8px;
         }
 
-        /* 答题状态 */
-        .answer-status {
-            margin-left: 10px;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-
-        .correct { background-color: #8BC34A; }
-        .wrong { background-color: #FF5252; }
-        /* 在<style>标签内添加 */
-        #soundToggleBtn.on {
-            background-color: #4CAF50;
-        }
-
-        #soundToggleBtn.off {
-            background-color: #f44336;
-        }
-        #soundTypeToggleBtn.on {
-            background-color: #4CAF50;
-        }
-
-        #soundTypeToggleBtn.off { 
-            background-color: #f44336;
-        }
-        /* 第二行控制区域样式 */
         .control-area.secondary {
             margin-top: 10px;
+        }
+
+        .side-panel .control-area {
+            justify-content: stretch;
+        }
+
+        .side-panel .control-area button {
+            flex: 1 1 auto;
+        }
+
+        #soundToggleBtn.off,
+        #soundTypeToggleBtn.off {
+            background-color: var(--danger);
+        }
+
+        #soundToggleBtn.on,
+        #soundTypeToggleBtn.on {
+            background-color: var(--accent);
+        }
+
+        .note-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        @media (min-width: 900px) {
+            .workbench {
+                grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.85fr);
+                align-items: start;
+            }
+
+            .question-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .side-panel {
+                position: sticky;
+                top: 16px;
+            }
+
+            .selection-area {
+                margin-left: 0;
+                margin-right: 0;
+                width: min(320px, 100%);
+            }
+
+            .side-panel .control-area {
+                justify-content: flex-start;
+            }
+        }
+
+        @media (max-width: 899px) {
+            .selection-area {
+                width: min(420px, 100%);
+            }
         }
     </style>
 </head>
 <body>
-    <!-- 题目区域 -->
-    <div class="question-grid" id="questionGrid"></div>
-
-    <!-- 音阶选择 -->
-    <div class="selection-area">
-        <button class="note-btn" data-note="1">1</button>
-        <button class="note-btn" data-note="2">2</button>
-        <button class="note-btn" data-note="3">3</button>
-        <button class="note-btn" data-note="4">4</button>
-        <button class="note-btn" data-note="5">5</button>
-        <button class="note-btn" data-note="6">6</button>
-        <button class="note-btn" data-note="7">7</button>
-        <!-- 修改高音1按钮 -->
-        <button class="note-btn" data-note="8">1̇</button>
-    </div>
-
-    <!-- 控制按钮 -->
-    <!-- 在控制区域添加新按钮 -->
-    <div class="control-area">
-        <button id="submitBtn">确定</button>
-        <button id="refreshBtn">刷新</button>
-        <button id="resetCurrentQuestionBtn">重新答题</button>
-    </div>
-    <div class="control-area secondary">
-        <button id="soundToggleBtn">音效：开</button>
-        <button id="soundTypeToggleBtn">音效类型：蜂鸣</button>
-        <button id="decreaseNoteCountBtn">-</button>
-        <button id="increaseNoteCountBtn">+</button>
+    <div class="app-shell">
+        <header class="app-header">
+            <h1>音感练习</h1>
+            <p>听音选音阶 · 练相对音感</p>
+        </header>
+        <div class="workbench">
+            <section class="panel">
+                <h2 class="panel-title">题目</h2>
+                <div class="question-grid" id="questionGrid"></div>
+            </section>
+            <aside class="panel side-panel">
+                <h2 class="panel-title">作答</h2>
+                <div class="selection-area">
+                    <button class="note-btn" data-note="1">1</button>
+                    <button class="note-btn" data-note="2">2</button>
+                    <button class="note-btn" data-note="3">3</button>
+                    <button class="note-btn" data-note="4">4</button>
+                    <button class="note-btn" data-note="5">5</button>
+                    <button class="note-btn" data-note="6">6</button>
+                    <button class="note-btn" data-note="7">7</button>
+                    <button class="note-btn" data-note="8">1̇</button>
+                </div>
+                <div class="control-area">
+                    <button id="submitBtn">确定</button>
+                    <button id="refreshBtn">刷新</button>
+                    <button id="resetCurrentQuestionBtn">重新答题</button>
+                </div>
+                <div class="control-area secondary">
+                    <button id="soundToggleBtn">音效：开</button>
+                    <button id="soundTypeToggleBtn">音效类型：蜂鸣</button>
+                    <span class="note-count">
+                        <button id="decreaseNoteCountBtn" type="button" aria-label="减少音符数">-</button>
+                        <button id="increaseNoteCountBtn" type="button" aria-label="增加音符数">+</button>
+                    </span>
+                </div>
+            </aside>
+        </div>
     </div>
 
     <script>
