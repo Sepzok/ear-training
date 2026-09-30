@@ -9,3 +9,7 @@ python3 -m http.server 8080
 ```
 
 Piano note samples live under `assets/piano/`.
+
+## Demo
+
+https://sepzok.github.io/ear-training/
